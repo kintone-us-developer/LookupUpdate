@@ -1,0 +1,75 @@
+/*
+ * New Condition Format plug-in
+ * Copyright (c) 2016 Cybozu
+ *
+ * Licensed under the MIT License
+ */
+.cf-plugin-block {
+    margin: 10px 0px 10px 0px;
+    border: solid 1px #eee;
+    padding: 20px;
+}
+
+#cf-plugin-text-tbody tr:first-child,
+#cf-plugin-date-tbody tr:first-child {
+    display: none;
+}
+
+#cf-plugin-date-tbody .cf-plugin-column3 {
+    width: 50px
+}
+
+.kintoneplugin-table-th .title {
+    min-width: 40px;
+}
+
+.cf-ctype {
+    width: 170px;
+}
+
+.cf-date-type {
+    width: 120px;
+}
+
+.cf-field-type {
+    width: 220px;
+}
+
+.cf-cvalue-date {
+    width: 60px;
+}
+
+.cf-font {
+    width: 120px;
+}
+
+.cf-plugin-column3-select1{
+    display: inline-block;
+    overflow: hidden;
+}
+
+.cf-plugin-date-column3-td {
+    white-space: nowrap;
+}
+
+.cf-plugin-column5-td, .cf-plugin-column6-td {
+    min-width: 128px;
+}
+
+.cf-plugin-column5, .cf-plugin-column6 {
+    width: 90px;
+}
+
+.cf-plugin-column5-color, .cf-plugin-column6-color{
+    display:none;
+}
+
+.color-paint-brush {
+    color: #676767;
+    padding-bottom: 2px;
+    border-bottom: 3px solid #000000;
+}
+
+.cf-plugin-column9{
+    min-width: 70px;
+}
