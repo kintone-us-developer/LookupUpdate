@@ -36,7 +36,12 @@ function fetchLookups(apps, appIndex, opt_map) {
                 if (!entireMap[sourceAppId]) {
                     entireMap[sourceAppId] = {};
                 }
-                entireMap[sourceAppId][appId] = lookup.fieldMappings;
+                var lookupFieldData = {
+                    "fieldCode": key,
+                    "keyField": lookup.relatedKeyField,
+                    "fieldMappings": lookup.fieldMappings
+                };
+                entireMap[sourceAppId][appId] = lookupFieldData;
             }
         }
         if (appIndex + 1 < apps.length) {
@@ -52,7 +57,6 @@ function generateMap() {
     }).then( function(allApps) {
         return fetchLookups(allApps, 0);
     }).then( function(entireMap) {
-        map = entireMap;
         return entireMap;
     });
 }
@@ -60,18 +64,19 @@ function generateMap() {
 function findMap() {
     kintone.api('/k/v1/apps', 'GET', {name: "XXX"}).then(function(resp) {
         return resp.apps[0].appId;
-    }).then(function(mapAppId) {
+    }).then( function(mapAppId) {
         var body = {
              "app": mapAppId,
-             "id": 10
+             "id": 11
         };
         kintone.api(kintone.api.url('/k/v1/record', true), 'GET', body, function(resp) {
             map = JSON.parse(resp.record[fieldCode].value);
             console.log(map);
             console.log("found");
+            return map;
         }, function(error) {
             // error: the record (and therefore map as JSON) hasn't been created yet.
-            generateMap().then(function(entireMap) {
+            generateMap().then( function(entireMap) {
                 var body = {
                     "app": mapAppId,
                     "record": {}
@@ -80,46 +85,24 @@ function findMap() {
                 body.record[fieldCode].value = JSON.stringify(entireMap);
                 kintone.api(kintone.api.url('/k/v1/record', true), 'POST', body, function(resp) {
                     // success: record creation succeeded.
+                    map = entireMap;
                     console.log(resp);
+                    return map;
                 }, function(error) {
                     // error: record creation failed.
                     console.log(error);
+                    throw Error("failed to create new record.")
                 });
             });
 
         });
     });
-
-    // kintone.api(kintone.api.url('/k/v1/apps', true), 'GET', {name: "X_X_X"}, function(resp) {
-    //     mapAppId = resp.apps[0].appId;
-    // });
-    //
-    // var body = {
-    //     "app": mapAppId,
-    //     "id": 5
-    // };
-    // kintone.api(kintone.api.url('/k/v1/record', true), 'GET', body, function(resp) {
-    //     map = JSON.parse(resp.record[fieldCode].value);
-    // }, function(error) {
-    //     // error: the record (and therefore map as JSON) hasn't been created yet.
-    //     generateMap();
-    //     var body = {
-    //         "app": mapAppId,
-    //         "record": {
-    //             fieldCode: {
-    //                 "value": JSON.stringify(map)
-    //             }
-    //         }
-    //     };
-    //     kintone.api(kintone.api.url('/k/v1/record', true), 'POST', body, function(resp) {
-    //         // success: record creation succeeded.
-    //         console.log(resp);
-    //     }, function(error) {
-    //         // error: record creation failed.
-    //         console.log(error);
-    //     });
-    // });
 }
 function compareMap() {
+
+}
+
+//returns an array of apps in the order that they need to be updated. startingApp is the app ID of the app that has an updated/new/deleted record.
+function getUpdateOrder(startingApp) {
 
 }
