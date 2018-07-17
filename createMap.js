@@ -38,7 +38,7 @@ function fetchLookups(apps, appIndex, opt_map) {
                 }
                 var lookupFieldData = {
                     "fieldCode": key,
-                    "keyField": lookup.relatedKeyField,
+                    "relatedLookupField": lookup.relatedKeyField,
                     "fieldMappings": lookup.fieldMappings
                 };
                 entireMap[sourceAppId][appId] = lookupFieldData;
@@ -67,9 +67,9 @@ function findMap() {
     }).then( function(mapAppId) {
         var body = {
              "app": mapAppId,
-             "id": 11
+             "id": 12
         };
-        kintone.api(kintone.api.url('/k/v1/record', true), 'GET', body, function(resp) {
+        kintone.api('/k/v1/record', 'GET', body).then( function(resp) {
             map = JSON.parse(resp.record[fieldCode].value);
             console.log(map);
             console.log("found");
@@ -83,7 +83,7 @@ function findMap() {
                 };
                 body.record[fieldCode] = {};
                 body.record[fieldCode].value = JSON.stringify(entireMap);
-                kintone.api(kintone.api.url('/k/v1/record', true), 'POST', body, function(resp) {
+                kintone.api('/k/v1/record', 'POST', body).then( function(resp) {
                     // success: record creation succeeded.
                     map = entireMap;
                     console.log(resp);
@@ -94,7 +94,6 @@ function findMap() {
                     throw Error("failed to create new record.")
                 });
             });
-
         });
     });
 }

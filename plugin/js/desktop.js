@@ -7,22 +7,25 @@ jQuery.noConflict();
 
     // checks if map is defined. Is a promise.
     function checkMap() {
-        return new Promise(function(resolve, reject) {
+        return new Promise( function(resolve, reject) {
             if (Object.keys(map).length === 0) {
+                console.log("Not Found");
                 resolve(findMap());
             } else {
-                return map;
+                console.log("Found");
+                resolve(map);
             }
         });
     }
 
     kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
         var sourceAppId = kintone.app.getId();
-        var afterRecord = event.record;
+        var recordAfterChange = event.record;
         var recordId = event.recordId;
         checkMap().then( function(map) {
             var destAppIds = Object.keys(map[sourceAppId]);
-            return updateRecords(sourceAppId, destAppIds, afterRecord, recordId, 0);
+            console.log(destAppIds);
+            return updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, 0);
         }).then( function(finished) {
             return event;
         });
@@ -42,14 +45,17 @@ jQuery.noConflict();
         });
     }
 
-    function updateRecords(sourceAppId, destAppIds, afterRecord, recordId, appIndex) {
+    function updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, appIndex) {
         // get record data of parent app before change
         var destAppId = destAppIds[appIndex];
+        var lookupFieldData = map[sourceAppId][destAppId];
         kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}, function(resp) {
-            var beforeRecord = resp.record;
-
+            var recordBeforeChange = resp.record;
             // fetch the matching records in the child lookup app
-            fetchRecords(destAppId.toString(), 'id = "' + beforeRecord.id.value + '"').then( function(records) {
+            var query = lookupFieldData.fieldCode + ' = ' + recordBeforeChange[lookupFieldData.relatedLookupField].value;
+            // console.log("query is: " + query);
+            fetchRecords(destAppId, query).then( function(records) {
+                // console.log("records is: " + records);
                 var recCount = records.length;
                 var putCount = Math.ceil(recCount / 100);
                 for (var i = 0; i < putCount; i++) {
@@ -61,7 +67,6 @@ jQuery.noConflict();
                     var putLimit = limit + offset;
 
                     var editRecords = [];
-
                     // overwrite the new data to matching records
                     // TODO: abort if no change
                     for (offset; offset < putLimit; offset++) {
@@ -74,21 +79,23 @@ jQuery.noConflict();
                         delete record['Created_by'];
                         delete record['Updated_datetime'];
                         delete record['Updated_by'];
-                        // TODO: use mapped fields
-                        record['id'] = afterRecord.id;
-                        record['name'] = afterRecord.name;
+                        record[lookupFieldData.fieldCode] = recordAfterChange[lookupFieldData.relatedLookupField];
+                        lookupFieldData.fieldMappings.forEach( function(mapping) {
+                            record[mapping.field] = recordAfterChange[mapping.relatedField];
+                        });
+                        // record['id'] = recordAfterChange.id;
+                        // record['name'] = recordAfterChange.name;
                         editRecords.push({'id': recId, 'record': record});
                     }
                     //TODO: do the same thing for child's children using editRecords and records
                     // for (destAppId in destAppIds) {
-                    //   updateRecords(sourceAppId, destAppId, afterRecord, recordId);
+                    //   updateRecords(sourceAppId, destAppId, recordAfterChange, recordId);
                     // }
                     // update the app by putting the updated records
                     kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}, function(resp) {
-                    }
-                );
-            }
+                    });
+                }
+            });
         });
-    });
-}
+    }
 })(jQuery, kintone.$PLUGIN_ID);
