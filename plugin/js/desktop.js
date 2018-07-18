@@ -1,3 +1,4 @@
+
 /*
 * Code based on example provided at: https://kintoneapp.com/blog/lookup_improvement/
 */
@@ -10,21 +11,30 @@ jQuery.noConflict();
         return new Promise( function(resolve, reject) {
             if (Object.keys(map).length === 0) {
                 console.log("Not Found");
-                resolve(findMap());
+                findMap().then( function(map2) {
+                    resolve(map2);
+                });
+                // var mappp = findMap();
+                // console.log(mappp);
+                // resolve(mappp);
             } else {
                 console.log("Found");
                 resolve(map);
             }
         });
     }
+    
 
     kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
         var sourceAppId = kintone.app.getId();
         var recordAfterChange = event.record;
         var recordId = event.recordId;
-        checkMap().then( function(map) {
-            var destAppIds = Object.keys(map[sourceAppId]);
-            console.log(destAppIds);
+        checkMap().then( function(map1) {
+            console.log(map1); //map undefined here
+            var destAppIds = Object.keys(map1[sourceAppId]); //errors here
+            console.log("destAppIds: " + destAppIds);
+            console.log("recordId: " + recordId);
+            console.log(event.record);
             return updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, 0);
         }).then( function(finished) {
             return event;
