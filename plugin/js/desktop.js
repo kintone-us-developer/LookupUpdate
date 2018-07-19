@@ -1,4 +1,3 @@
-
 /*
 * Code based on example provided at: https://kintoneapp.com/blog/lookup_improvement/
 */
@@ -10,35 +9,31 @@ jQuery.noConflict();
     function checkMap() {
         return new Promise( function(resolve, reject) {
             if (Object.keys(map).length === 0) {
-                console.log("Not Found");
-                findMap().then( function(map2) {
-                    resolve(map2);
-                });
-                // var mappp = findMap();
-                // console.log(mappp);
-                // resolve(mappp);
+                resolve(findMap());
             } else {
-                console.log("Found");
                 resolve(map);
             }
         });
     }
-    
+    var recordBeforeChange;
 
     kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
         var sourceAppId = kintone.app.getId();
         var recordAfterChange = event.record;
+        console.log("after");
+        console.log(recordAfterChange);
         var recordId = event.recordId;
-        checkMap().then( function(map1) {
-            console.log(map1); //map undefined here
-            var destAppIds = Object.keys(map1[sourceAppId]); //errors here
-            console.log("destAppIds: " + destAppIds);
-            console.log("recordId: " + recordId);
-            console.log(event.record);
-            return updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, 0);
-        }).then( function(message) {
-            console.log(message);
-            return event;
+        kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}).then(function(resp) {
+            recordBeforeChange = resp.record;
+            console.log("before");
+            console.log(recordBeforeChange);
+        }).then( function(x) {
+            checkMap().then( function(map) {
+                var destAppIds = Object.keys(map[sourceAppId]);
+                return updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, 0);
+            }).then( function(message) {
+                console.log(message);
+            });
         });
     });
 
@@ -60,13 +55,13 @@ jQuery.noConflict();
         // get record data of parent app before change
         var destAppId = destAppIds[appIndex];
         var lookupFieldData = map[sourceAppId][destAppId];
-        return kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}).then(function(resp) {
-            var recordBeforeChange = resp.record;
+        // return kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}).then(function(resp) {
+            //var recordBeforeChange = resp.record;
+            // console.log("before");
+            // console.log(recordBeforeChange);
             // fetch the matching records in the child lookup app
             var query = lookupFieldData.fieldCode + ' = ' + recordBeforeChange[lookupFieldData.relatedLookupField].value;
-            // console.log("query is: " + query);
-            fetchRecords(destAppId, query).then( function(records) {
-                // console.log("records is: " + records);
+            return fetchRecords(destAppId, query).then( function(records) {
                 var recCount = records.length;
                 var putCount = Math.ceil(recCount / 100);
                 for (var i = 0; i < putCount; i++) {
@@ -108,8 +103,6 @@ jQuery.noConflict();
                     });
                 }
             });
-        }).then( function(message) {
-            return message;
-        });
+        // });
     }
 })(jQuery, kintone.$PLUGIN_ID);
