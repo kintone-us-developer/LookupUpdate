@@ -62,39 +62,42 @@ function generateMap() {
 }
 
 function findMap() {
-    kintone.api('/k/v1/apps', 'GET', {name: "XXX"}).then(function(resp) {
+    return kintone.api('/k/v1/apps', 'GET', {name: "XXX"}).then(function(resp) {
         return resp.apps[0].appId;
     }).then( function(mapAppId) {
         var body = {
              "app": mapAppId,
              "id": 12
         };
-        kintone.api('/k/v1/record', 'GET', body).then( function(resp) {
+        return kintone.api('/k/v1/record', 'GET', body).then( function(resp) {
             map = JSON.parse(resp.record[fieldCode].value);
             console.log(map);
             console.log("found");
             return map;
         }, function(error) {
             // error: the record (and therefore map as JSON) hasn't been created yet.
-            generateMap().then( function(entireMap) {
-                var body = {
-                    "app": mapAppId,
-                    "record": {}
-                };
-                body.record[fieldCode] = {};
-                body.record[fieldCode].value = JSON.stringify(entireMap);
-                kintone.api('/k/v1/record', 'POST', body).then( function(resp) {
-                    // success: record creation succeeded.
-                    map = entireMap;
-                    console.log(resp);
-                    return map;
-                }, function(error) {
-                    // error: record creation failed.
-                    console.log(error);
-                    throw Error("failed to create new record.")
-                });
-            });
+            //TODO: check if this part actually works async
+            // generateMap().then( function(entireMap) {
+            //     var body = {
+            //         "app": mapAppId,
+            //         "record": {}
+            //     };
+            //     body.record[fieldCode] = {};
+            //     body.record[fieldCode].value = JSON.stringify(entireMap);
+            //     kintone.api('/k/v1/record', 'POST', body).then( function(resp) {
+            //         // success: record creation succeeded.
+            //         map = entireMap;
+            //         console.log(resp);
+            //         return map;
+            //     }, function(error) {
+            //         // error: record creation failed.
+            //         console.log(error);
+            //         throw Error("failed to create new record.")
+            //     });
+            // });
         });
+    }).then(function(map) {
+        return map;
     });
 }
 function compareMap() {

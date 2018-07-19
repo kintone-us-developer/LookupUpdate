@@ -26,7 +26,8 @@ jQuery.noConflict();
             var destAppIds = Object.keys(map[sourceAppId]);
             console.log(destAppIds);
             return updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, 0);
-        }).then( function(finished) {
+        }).then( function(message) {
+            console.log(message);
             return event;
         });
     });
@@ -49,7 +50,7 @@ jQuery.noConflict();
         // get record data of parent app before change
         var destAppId = destAppIds[appIndex];
         var lookupFieldData = map[sourceAppId][destAppId];
-        kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}, function(resp) {
+        return kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}).then(function(resp) {
             var recordBeforeChange = resp.record;
             // fetch the matching records in the child lookup app
             var query = lookupFieldData.fieldCode + ' = ' + recordBeforeChange[lookupFieldData.relatedLookupField].value;
@@ -92,10 +93,13 @@ jQuery.noConflict();
                     //   updateRecords(sourceAppId, destAppId, recordAfterChange, recordId);
                     // }
                     // update the app by putting the updated records
-                    kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}, function(resp) {
+                    return kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}).then(function(resp) {
+                        return "updated records";
                     });
                 }
             });
+        }).then( function(message) {
+            return message;
         });
     }
 })(jQuery, kintone.$PLUGIN_ID);
