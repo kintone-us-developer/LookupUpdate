@@ -25,14 +25,14 @@ jQuery.noConflict();
         });
     }
 
-    var recordBeforeChange;
+    // var recordBeforeChange;
     function updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId) {
         var destAppIds = Object.keys(map[sourceAppId]);
         var l = destAppIds.length;
         var chain = Promise.resolve();
         for (let i = 0; i < l; i++) {
             chain = chain.then(function() {
-                return updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, i);
+                return updateRecords(sourceAppId, destAppIds, recordBeforeChange, recordAfterChange, recordId, i);
             });
         }
         return chain;
@@ -45,16 +45,17 @@ jQuery.noConflict();
         console.log(recordAfterChange);
         var recordId = event.recordId;
         kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}).then(function(resp) {
-            recordBeforeChange = resp.record;
+            var recordBeforeChange = resp.record;
             console.log("before");
             console.log(recordBeforeChange);
-        }).then( function(x) {
+            return recordBeforeChange;
+        }).then( function(recordBeforeChange) {
             checkMap().then( function(map) {
                 console.log(map);
                 if (!map[sourceAppId]) {
                     return "no children";
                 }
-                return updateChildren(sourceAppId, recordAfterChange, recordId);
+                return updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId);
             }).then( function(message) {
                 console.log(message);
             });
@@ -75,16 +76,11 @@ jQuery.noConflict();
         });
     }
 
-    function updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, appIndex) {
+    function updateRecords(sourceAppId, destAppIds, recordBeforeChange, recordAfterChange, recordId, appIndex) {
         // get record data of parent app before change
         var destAppId = destAppIds[appIndex];
         //var destAppId = "69";
         var lookupFieldData = map[sourceAppId][destAppId];
-        // return kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}).then(function(resp) {
-            //var recordBeforeChange = resp.record;
-            // console.log("before");
-            // console.log(recordBeforeChange);
-            // fetch the matching records in the child lookup app
             var query = lookupFieldData.fieldCode + ' = ' + escapeStr(recordBeforeChange[lookupFieldData.relatedLookupField].value);
             return fetchRecords(destAppId, query).then( function(records) {
                 var recCount = records.length;
@@ -114,17 +110,15 @@ jQuery.noConflict();
                         lookupFieldData.fieldMappings.forEach( function(mapping) {
                             record[mapping.field] = recordAfterChange[mapping.relatedField];
                         });
-                        // record['id'] = recordAfterChange.id;
-                        // record['name'] = recordAfterChange.name;
                         editRecords.push({'id': recId, 'record': record});
                     }
                     //TODO: should be list of (recordBeforeChange, recordAfterChange) tuples
-                    var chain = Promise.resolve();
-                    for (var childAfterChange in editRecords) {
-                        chain = chain.then( function() {
-                            return updateChildren(destAppId, childAfterChange, childAfterChange.id);
-                        });
-                    }
+                    // var chain = Promise.resolve();
+                    // for (var childAfterChange in editRecords) {
+                    //     chain = chain.then( function() {
+                    //         return updateChildren(destAppId, childAfterChange, childAfterChange.id);
+                    //     });
+                    // }
                     return kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}).then(function(resp) {
                         return "updated records";
                     }, function(error) {
@@ -132,6 +126,5 @@ jQuery.noConflict();
                     });
                 }
             });
-        // });
     }
 })(jQuery, kintone.$PLUGIN_ID);
