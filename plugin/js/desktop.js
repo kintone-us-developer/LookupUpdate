@@ -26,7 +26,7 @@ jQuery.noConflict();
     }
 
     var recordBeforeChange;
-    function updateChildren(sourceAppId, recordAfterChange, recordId) {
+    function updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId) {
         var destAppIds = Object.keys(map[sourceAppId]);
         var l = destAppIds.length;
         var chain = Promise.resolve();
@@ -118,12 +118,13 @@ jQuery.noConflict();
                         // record['name'] = recordAfterChange.name;
                         editRecords.push({'id': recId, 'record': record});
                     }
-                    // var chain = Promise.resolve();
-                    // for (var childAfterChange in editRecords) {
-                    //     chain = chain.then( function() {
-                    //         return updateChildren(destAppId, childAfterChange, childAfterChange.id);
-                    //     });
-                    // }
+                    //TODO: should be list of (recordBeforeChange, recordAfterChange) tuples
+                    var chain = Promise.resolve();
+                    for (var childAfterChange in editRecords) {
+                        chain = chain.then( function() {
+                            return updateChildren(destAppId, childAfterChange, childAfterChange.id);
+                        });
+                    }
                     return kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}).then(function(resp) {
                         return "updated records";
                     }, function(error) {
