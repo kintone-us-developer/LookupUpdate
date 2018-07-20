@@ -57,6 +57,7 @@ function generateMap() {
     }).then( function(allApps) {
         return fetchLookups(allApps, 0);
     }).then( function(entireMap) {
+        map = entireMap;
         return entireMap;
     });
 }
@@ -67,34 +68,32 @@ function findMap() {
     }).then( function(mapAppId) {
         var body = {
              "app": mapAppId,
-             "id": 12
+             "query": "order by Updated_datetime desc limit 1"
         };
-        return kintone.api('/k/v1/record', 'GET', body).then( function(resp) {
-            map = JSON.parse(resp.record[fieldCode].value);
-            console.log(map);
-            console.log("found");
-            return map;
-        }, function(error) {
-            // error: the record (and therefore map as JSON) hasn't been created yet.
-            //TODO: check if this part actually works async
-            // generateMap().then( function(entireMap) {
-            //     var body = {
-            //         "app": mapAppId,
-            //         "record": {}
-            //     };
-            //     body.record[fieldCode] = {};
-            //     body.record[fieldCode].value = JSON.stringify(entireMap);
-            //     kintone.api('/k/v1/record', 'POST', body).then( function(resp) {
-            //         // success: record creation succeeded.
-            //         map = entireMap;
-            //         console.log(resp);
-            //         return map;
-            //     }, function(error) {
-            //         // error: record creation failed.
-            //         console.log(error);
-            //         throw Error("failed to create new record.")
-            //     });
-            // });
+        return kintone.api('/k/v1/records', 'GET', body).then( function(resp) {
+            if (resp.records.length !== 0) {
+                map = JSON.parse(resp.records[0][fieldCode].value);
+                console.log(map);
+                console.log("found");
+                return map;
+            } else {
+                return generateMap().then( function(entireMap) {
+                    var body = {
+                        "app": mapAppId,
+                        "record": {}
+                    };
+                    body.record[fieldCode] = {};
+                    body.record[fieldCode].value = JSON.stringify(entireMap);
+                    return kintone.api('/k/v1/record', 'POST', body).then( function(resp) {
+                        // success: record creation succeeded.
+                        console.log(map);
+                        return map;
+                    }, function(error) {
+                        // error: record creation failed.
+                        throw Error("failed to create new record.")
+                    });
+                });
+            }
         });
     }).then(function(map) {
         return map;
