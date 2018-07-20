@@ -5,6 +5,15 @@ jQuery.noConflict();
 (function($, PLUGIN_ID) {
     "use strict";
 
+    //TODO: fix this so that str can have ", "", ', '', and other patterns of escape characters
+    function escapeStr(str) {
+        var escaped = str;
+        // var escaped = (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
+        // var escaped = str.replace(/\\([\s\S])|(")/g, "\\$1$2");
+        // var escaped = str.replace(/\x22/g, '\\\x22').replace(/\x27/g, '\\\x27');
+        return '"' + escaped + '"';
+    }
+
     // checks if map is defined. Is a promise.
     function checkMap() {
         return new Promise( function(resolve, reject) {
@@ -15,7 +24,19 @@ jQuery.noConflict();
             }
         });
     }
+
     var recordBeforeChange;
+    function updateChildren(sourceAppId, recordAfterChange, recordId) {
+        var destAppIds = Object.keys(map[sourceAppId]);
+        var l = destAppIds.length;
+        var chain = Promise.resolve();
+        for (let i = 0; i < l; i++) {
+            chain = chain.then(function() {
+                return updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, i);
+            });
+        }
+        return chain;
+    }
 
     kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
         var sourceAppId = kintone.app.getId();
@@ -29,8 +50,11 @@ jQuery.noConflict();
             console.log(recordBeforeChange);
         }).then( function(x) {
             checkMap().then( function(map) {
-                var destAppIds = Object.keys(map[sourceAppId]);
-                return updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, 0);
+                console.log(map);
+                if (!map[sourceAppId]) {
+                    return "no children";
+                }
+                return updateChildren(sourceAppId, recordAfterChange, recordId);
             }).then( function(message) {
                 console.log(message);
             });
@@ -54,13 +78,14 @@ jQuery.noConflict();
     function updateRecords(sourceAppId, destAppIds, recordAfterChange, recordId, appIndex) {
         // get record data of parent app before change
         var destAppId = destAppIds[appIndex];
+        //var destAppId = "69";
         var lookupFieldData = map[sourceAppId][destAppId];
         // return kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}).then(function(resp) {
             //var recordBeforeChange = resp.record;
             // console.log("before");
             // console.log(recordBeforeChange);
             // fetch the matching records in the child lookup app
-            var query = lookupFieldData.fieldCode + ' = ' + recordBeforeChange[lookupFieldData.relatedLookupField].value;
+            var query = lookupFieldData.fieldCode + ' = ' + escapeStr(recordBeforeChange[lookupFieldData.relatedLookupField].value);
             return fetchRecords(destAppId, query).then( function(records) {
                 var recCount = records.length;
                 var putCount = Math.ceil(recCount / 100);
@@ -93,13 +118,16 @@ jQuery.noConflict();
                         // record['name'] = recordAfterChange.name;
                         editRecords.push({'id': recId, 'record': record});
                     }
-                    //TODO: do the same thing for child's children using editRecords and records
-                    // for (destAppId in destAppIds) {
-                    //   updateRecords(sourceAppId, destAppId, recordAfterChange, recordId);
+                    // var chain = Promise.resolve();
+                    // for (var childAfterChange in editRecords) {
+                    //     chain = chain.then( function() {
+                    //         return updateChildren(destAppId, childAfterChange, childAfterChange.id);
+                    //     });
                     // }
-                    // update the app by putting the updated records
                     return kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}).then(function(resp) {
                         return "updated records";
+                    }, function(error) {
+                        throw Error("failed to put record");
                     });
                 }
             });
