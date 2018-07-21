@@ -29,8 +29,9 @@ jQuery.noConflict();
     function updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId) {
         if (!map[sourceAppId]) {
             return sourceAppId + " no children, end of chain";
-        } else if (JSON.stringify(recordBeforeChange) === JSON.stringify(recordAfterChange)) {
-            return "no change made to record";
+        // TODO: fix this, stringify doesn't work because keys not in same order
+        // } else if (JSON.stringify(recordBeforeChange) === JSON.stringify(recordAfterChange)) {
+        //     return "no change made to record";
         } else {
             var destAppIds = Object.keys(map[sourceAppId]);
             var l = destAppIds.length;
