@@ -27,15 +27,21 @@ jQuery.noConflict();
 
     // var recordBeforeChange;
     function updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId) {
-        var destAppIds = Object.keys(map[sourceAppId]);
-        var l = destAppIds.length;
-        var chain = Promise.resolve();
-        for (let i = 0; i < l; i++) {
-            chain = chain.then(function() {
-                return updateRecords(sourceAppId, destAppIds, recordBeforeChange, recordAfterChange, recordId, i);
-            });
+        if (!map[sourceAppId]) {
+            return sourceAppId + " no children, end of chain";
+        } else if (JSON.stringify(recordBeforeChange) === JSON.stringify(recordAfterChange)) {
+            return "no change made to record";
+        } else {
+            var destAppIds = Object.keys(map[sourceAppId]);
+            var l = destAppIds.length;
+            var chain = Promise.resolve();
+            for (let i = 0; i < l; i++) {
+                chain = chain.then(function() {
+                    return updateRecords(sourceAppId, destAppIds, recordBeforeChange, recordAfterChange, recordId, i);
+                });
+            }
+            return chain;
         }
-        return chain;
     }
 
     kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
@@ -52,9 +58,6 @@ jQuery.noConflict();
         }).then( function(recordBeforeChange) {
             checkMap().then( function(map) {
                 console.log(map);
-                if (!map[sourceAppId]) {
-                    return "no children";
-                }
                 return updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId);
             }).then( function(message) {
                 console.log(message);
@@ -77,54 +80,58 @@ jQuery.noConflict();
     }
 
     function updateRecords(sourceAppId, destAppIds, recordBeforeChange, recordAfterChange, recordId, appIndex) {
-        // get record data of parent app before change
         var destAppId = destAppIds[appIndex];
-        //var destAppId = "69";
         var lookupFieldData = map[sourceAppId][destAppId];
-            var query = lookupFieldData.fieldCode + ' = ' + escapeStr(recordBeforeChange[lookupFieldData.relatedLookupField].value);
-            return fetchRecords(destAppId, query).then( function(records) {
-                var recCount = records.length;
-                var putCount = Math.ceil(recCount / 100);
-                for (var i = 0; i < putCount; i++) {
-                    var offset = i * 100;
-                    var limit = 100;
-                    if (offset + limit > recCount) {
-                        limit = recCount - offset;
-                    }
-                    var putLimit = limit + offset;
+        var query = lookupFieldData.fieldCode + ' = ' + escapeStr(recordBeforeChange[lookupFieldData.relatedLookupField].value);
+        return fetchRecords(destAppId, query).then( function(records) {
+            var recCount = records.length;
+            var putCount = Math.ceil(recCount / 100);
+            for (var i = 0; i < putCount; i++) {
+                var offset = i * 100;
+                var initialOffset = offset; //because offset changes in the for loop below
+                var limit = 100;
+                if (offset + limit > recCount) {
+                    limit = recCount - offset;
+                }
+                var putLimit = limit + offset;
 
-                    var editRecords = [];
-                    // overwrite the new data to matching records
-                    // TODO: abort if no change
-                    for (offset; offset < putLimit; offset++) {
-                        var record = $.extend(true, {}, records[offset]);
-                        var recId = record['$id'].value;
-                        delete record['$id'];
-                        delete record['$revision'];
-                        delete record['Record_number'];
-                        delete record['Created_datetime'];
-                        delete record['Created_by'];
-                        delete record['Updated_datetime'];
-                        delete record['Updated_by'];
-                        record[lookupFieldData.fieldCode] = recordAfterChange[lookupFieldData.relatedLookupField];
-                        lookupFieldData.fieldMappings.forEach( function(mapping) {
-                            record[mapping.field] = recordAfterChange[mapping.relatedField];
-                        });
-                        editRecords.push({'id': recId, 'record': record});
-                    }
-                    //TODO: should be list of (recordBeforeChange, recordAfterChange) tuples
-                    // var chain = Promise.resolve();
-                    // for (var childAfterChange in editRecords) {
-                    //     chain = chain.then( function() {
-                    //         return updateChildren(destAppId, childAfterChange, childAfterChange.id);
-                    //     });
-                    // }
+                var editRecords = [];
+                // overwrite the new data to matching records
+                // TODO: abort if no change
+                for (offset; offset < putLimit; offset++) {
+                    var record = $.extend(true, {}, records[offset]);
+                    var recId = record['$id'].value;
+                    delete record['$id'];
+                    delete record['$revision'];
+                    delete record['Record_number'];
+                    delete record['Created_datetime'];
+                    delete record['Created_by'];
+                    delete record['Updated_datetime'];
+                    delete record['Updated_by'];
+                    record[lookupFieldData.fieldCode] = recordAfterChange[lookupFieldData.relatedLookupField];
+                    lookupFieldData.fieldMappings.forEach( function(mapping) {
+                        record[mapping.field] = recordAfterChange[mapping.relatedField];
+                    });
+                    editRecords.push({'id': recId, 'record': record});
+                }
+
+                var l = editRecords.length;
+                var chain = Promise.resolve();
+                chain = chain.then( function() {
                     return kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}).then(function(resp) {
+                        console.log("DestAppId is: " + destAppId);
                         return "updated records";
                     }, function(error) {
-                        throw Error("failed to put record");
+                        throw error;
+                    });
+                });
+                for (let i = 0; i < l; i++) {
+                    chain = chain.then( function() {
+                        return updateChildren(destAppId, records[initialOffset + i], editRecords[i].record, editRecords[i].id);
                     });
                 }
-            });
+                return chain;
+            }
+        });
     }
 })(jQuery, kintone.$PLUGIN_ID);

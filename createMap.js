@@ -3,7 +3,7 @@
 // source is parent, mapping is child
 var map = {};
 // var apps = [];
-var fieldCode = "textFieldX"
+var fieldCode = "mapAsJSON"
 
 // Since API GET can only get up to 100 apps per call, we
 // need to account for cases where there are more than 100 apps
@@ -63,7 +63,7 @@ function generateMap() {
 }
 
 function findMap() {
-    return kintone.api('/k/v1/apps', 'GET', {name: "XXX"}).then(function(resp) {
+    return kintone.api('/k/v1/apps', 'GET', {name: "Map Source"}).then(function(resp) {
         return resp.apps[0].appId;
     }).then( function(mapAppId) {
         var body = {
@@ -98,12 +98,4 @@ function findMap() {
     }).then(function(map) {
         return map;
     });
-}
-function compareMap() {
-
-}
-
-//returns an array of apps in the order that they need to be updated. startingApp is the app ID of the app that has an updated/new/deleted record.
-function getUpdateOrder(startingApp) {
-
 }
