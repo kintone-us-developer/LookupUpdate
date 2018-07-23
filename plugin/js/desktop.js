@@ -11,6 +11,9 @@ jQuery.noConflict();
         // var escaped = (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
         // var escaped = str.replace(/\\([\s\S])|(")/g, "\\$1$2");
         // var escaped = str.replace(/\x22/g, '\\\x22').replace(/\x27/g, '\\\x27');
+        var escaped = str.replace(/\x22/g, '\\\x22');
+
+        // console.log('"' + escaped + '"');
         return '"' + escaped + '"';
     }
 
@@ -83,6 +86,7 @@ jQuery.noConflict();
         var destAppId = destAppIds[appIndex];
         var lookupFieldData = map[sourceAppId][destAppId];
         var query = lookupFieldData.fieldCode + ' = ' + escapeStr(recordBeforeChange[lookupFieldData.relatedLookupField].value);
+        console.log(query);
         return fetchRecords(destAppId, query).then( function(records) {
             var recCount = records.length;
             var putCount = Math.ceil(recCount / 100);
@@ -108,6 +112,7 @@ jQuery.noConflict();
                     delete record['Created_by'];
                     delete record['Updated_datetime'];
                     delete record['Updated_by'];
+                    "sdfsd''//v fsdf"
                     record[lookupFieldData.fieldCode] = recordAfterChange[lookupFieldData.relatedLookupField];
                     lookupFieldData.fieldMappings.forEach( function(mapping) {
                         record[mapping.field] = recordAfterChange[mapping.relatedField];

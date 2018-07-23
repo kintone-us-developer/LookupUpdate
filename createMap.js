@@ -21,6 +21,7 @@ function fetchApps(opt_offset, opt_limit, opt_apps) {
     });
 }
 
+//
 function fetchLookups(apps, appIndex, opt_map) {
     var entireMap = opt_map || {};
     var appId = apps[appIndex]["appId"];
@@ -51,6 +52,7 @@ function fetchLookups(apps, appIndex, opt_map) {
     });
 }
 
+// Synchronously calls fetchApps and fetchLookups, respectively. Return value currently not used; we should change that.
 function generateMap() {
     return new Promise(function(resolve, reject) {
         resolve(fetchApps());
@@ -62,6 +64,7 @@ function generateMap() {
     });
 }
 
+//Determines if the map has already been created. If not, it calls generateMap to create it.
 function findMap() {
     return kintone.api('/k/v1/apps', 'GET', {name: "Map Source"}).then(function(resp) {
         return resp.apps[0].appId;
