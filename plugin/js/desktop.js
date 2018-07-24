@@ -1,7 +1,11 @@
 /* Code based on example provided at: https://kintoneapp.com/blog/lookup_improvement/ */
 "use strict";
 jQuery.noConflict();
+<<<<<<< HEAD
 (function($, PLUGIN_ID) {
+=======
+(function($, PLUGIN_ID) {
+>>>>>>> 0da5c80d3597156b54699bab576bd1891b8aee34
     var masterChain = Promise.resolve();
 
     /* Existing record edited and save button clicked */
