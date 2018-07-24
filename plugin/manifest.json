@@ -8,7 +8,7 @@
     },
     "description": {
         "ja": "自動的に他アプリのルックアップを更新するプラグイン。",
-        "en": "Updates lookup fields automatically whenever the source data changes. *Please remember to install the accompanying platform-level javascript customization and create the map app as well."
+        "en": "Updates lookup fields automatically whenever the source data changes. *Please remember to install the accompanying platform-level javascript customization and create the \"Map Source\" app as well."
     },
     "icon": "image/icon.png",
     "desktop": {
