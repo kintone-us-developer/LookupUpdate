@@ -1,6 +1,6 @@
 {
     "manifest_version": 1,
-    "version": 4,
+    "version": 1,
     "type": "APP",
     "name": {
         "ja": "自動ルックアップ プラグイン",
@@ -13,11 +13,10 @@
     "icon": "image/icon.png",
     "desktop": {
         "js": [
-            "https://js.cybozu.com/jquery/2.1.4/jquery.min.js",
+            "https://js.kintone.com/jquery/3.3.1/jquery.min.js",
             "https://js.kintone.com/spinjs/2.3.2/spin.min.js",
+            "js/createMap.js",
             "js/desktop.js"
-        ],
-        "css": [
         ]
     }
 }

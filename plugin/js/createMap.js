@@ -1,12 +1,11 @@
-// Automatically creates the lookup relation data structure
+/* Automatically creates the lookup relation data structure;
+source is parent, mapping is child */
 "use strict";
-// source is parent, mapping is child
 var map = {};
-// var apps = [];
-var fieldCode = "mapAsJSON"
+var fieldCode = "mapAsJSON";
 
-// Since API GET can only get up to 100 apps per call, we
-// need to account for cases where there are more than 100 apps
+/* Since API GET can only get up to 100 apps per call, we
+need to account for cases where there are more than 100 apps. */
 function fetchApps(opt_offset, opt_limit, opt_apps) {
     var offset = opt_offset || 0;
     var limit = opt_limit || 100;
@@ -21,7 +20,9 @@ function fetchApps(opt_offset, opt_limit, opt_apps) {
     });
 }
 
-//
+/* Finds the lookup fields in the apps, and returns the map.
+Does NOT support multiple lookup fields in the same app that have the same
+parent. */
 function fetchLookups(apps, appIndex, opt_map) {
     var entireMap = opt_map || {};
     var appId = apps[appIndex]["appId"];
@@ -52,7 +53,7 @@ function fetchLookups(apps, appIndex, opt_map) {
     });
 }
 
-// Synchronously calls fetchApps and fetchLookups, respectively. Return value currently not used; we should change that.
+/* Fetches apps, then uses lookup field data of all the apps to generate the map. */
 function generateMap() {
     return new Promise(function(resolve, reject) {
         resolve(fetchApps());
@@ -64,36 +65,37 @@ function generateMap() {
     });
 }
 
-//Determines if the map has already been created. If not, it calls generateMap to create it.
+/* Determines if the map has already been created.
+If not, it calls generateMap to create it. */
 function findMap() {
     return kintone.api('/k/v1/apps', 'GET', {name: "Map Source"}).then(function(resp) {
         return resp.apps[0].appId;
-    }).then( function(mapAppId) {
+    }).then( function(mapSourceAppId) {
         var body = {
-             "app": mapAppId,
-             "query": "order by Updated_datetime desc limit 1"
+             "app": mapSourceAppId,
+             "query": "order by Updated_datetime desc limit 1" /* Gets the most recent record */
         };
+        /* API call that fetches the map from the record in the "Map Source" app. */
         return kintone.api('/k/v1/records', 'GET', body).then( function(resp) {
-            if (resp.records.length !== 0) {
+            if (resp.records.length !== 0) { /* map record exists */
                 map = JSON.parse(resp.records[0][fieldCode].value);
                 // console.log(map);
                 // console.log("found");
                 return map;
-            } else {
+            } else { /* map record doesn't exist yet */
                 return generateMap().then( function(entireMap) {
                     var body = {
-                        "app": mapAppId,
+                        "app": mapSourceAppId,
                         "record": {}
                     };
                     body.record[fieldCode] = {};
                     body.record[fieldCode].value = JSON.stringify(entireMap);
                     return kintone.api('/k/v1/record', 'POST', body).then( function(resp) {
-                        // success: record creation succeeded.
-                        // console.log(map);
+                        /* success: new map record added to Map Source app */
                         return map;
                     }, function(error) {
-                        // error: record creation failed.
-                        throw Error("failed to create new record.")
+                        /* error: map record creation failed, no record added. */
+                        throw Error("failed to create new record.");
                     });
                 });
             }
