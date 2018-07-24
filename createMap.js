@@ -76,8 +76,8 @@ function findMap() {
         return kintone.api('/k/v1/records', 'GET', body).then( function(resp) {
             if (resp.records.length !== 0) {
                 map = JSON.parse(resp.records[0][fieldCode].value);
-                console.log(map);
-                console.log("found");
+                // console.log(map);
+                // console.log("found");
                 return map;
             } else {
                 return generateMap().then( function(entireMap) {
@@ -89,7 +89,7 @@ function findMap() {
                     body.record[fieldCode].value = JSON.stringify(entireMap);
                     return kintone.api('/k/v1/record', 'POST', body).then( function(resp) {
                         // success: record creation succeeded.
-                        console.log(map);
+                        // console.log(map);
                         return map;
                     }, function(error) {
                         // error: record creation failed.

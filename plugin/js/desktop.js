@@ -5,19 +5,72 @@ jQuery.noConflict();
 (function($, PLUGIN_ID) {
     "use strict";
 
-    //TODO: fix this so that str can have ", "", ', '', and other patterns of escape characters
-    function escapeStr(str) {
-        var escaped = str;
-        // var escaped = (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
-        // var escaped = str.replace(/\\([\s\S])|(")/g, "\\$1$2");
-        // var escaped = str.replace(/\x22/g, '\\\x22').replace(/\x27/g, '\\\x27');
-        var escaped = str.replace(/\x22/g, '\\\x22');
+    //On Submit
+    kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
+        showSpinner();
+        var sourceAppId = kintone.app.getId();
+        var recordId = event.recordId;
+        chain = chain.then(function() {
+            return kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId});
+        }).then(function(resp) {
+            var recordBeforeChange = resp.record;
+            // console.log("before");
+            // console.log(recordBeforeChange);
+            return recordBeforeChange;
+        });
+        hideSpinner();
+    });
 
-        // console.log('"' + escaped + '"');
+    //On Success
+    var chain = Promise.resolve();
+    kintone.events.on(['app.record.edit.submit.success', 'app.record.index.edit.submit.success'], function(event) {
+        showSpinner();
+        var sourceAppId = kintone.app.getId();
+        var recordId = event.recordId;
+        var recordAfterChange = event.record;
+        chain = chain.then( function(recordBeforeChange) {
+            checkMap().then( function(map) {
+                // console.log(map);
+                return updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId);
+            }).then( function(message) {
+                console.log(message);
+                hideSpinner();
+            });
+        });
+        return chain;
+    });
+
+    function recordsEqual(recordBeforeChange, recordAfterChange) {
+        // only need to compare record values for equality
+        delete recordBeforeChange["$revision"];
+        delete recordBeforeChange["Updated_datetime"];
+        delete recordAfterChange["$revision"];
+        delete recordAfterChange["Updated_datetime"];
+        // console.log("before");
+        // console.log(recordBeforeChange);
+        // console.log("after");
+        // console.log(recordAfterChange);
+        var orderedBefore = {};
+        Object.keys(recordBeforeChange).sort().forEach(function(key) {
+            orderedBefore[key] = recordBeforeChange[key];
+        });
+        var orderedAfter = {};
+        Object.keys(recordAfterChange).sort().forEach(function(key) {
+            orderedAfter[key] = recordAfterChange[key];
+        });
+        if (JSON.stringify(orderedBefore) === JSON.stringify(orderedAfter)) {
+            return true;
+        }
+        return false;
+    }
+
+    // handles " (double quote) in query string
+    function escapeStr(str) {
+        var escaped = str.replace(/\x22/g, '\\\x22');
         return '"' + escaped + '"';
     }
 
-    // checks if map is defined. Is a promise.
+    // checks if map is defined in current window. Is a promise.
     function checkMap() {
         return new Promise( function(resolve, reject) {
             if (Object.keys(map).length === 0) {
@@ -28,13 +81,12 @@ jQuery.noConflict();
         });
     }
 
-    // var recordBeforeChange;
+    // updates all apps with lookups that use the app with sourceAppId as a source
     function updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId) {
         if (!map[sourceAppId]) {
             return sourceAppId + " no children, end of chain";
-        // TODO: fix this, stringify doesn't work because keys not in same order
-        // } else if (JSON.stringify(recordBeforeChange) === JSON.stringify(recordAfterChange)) {
-        //     return "no change made to record";
+        } else if (recordsEqual(recordBeforeChange, recordAfterChange)) {
+            return "no change made to record";
         } else {
             var destAppIds = Object.keys(map[sourceAppId]);
             var l = destAppIds.length;
@@ -48,27 +100,7 @@ jQuery.noConflict();
         }
     }
 
-    kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
-        var sourceAppId = kintone.app.getId();
-        var recordAfterChange = event.record;
-        console.log("after");
-        console.log(recordAfterChange);
-        var recordId = event.recordId;
-        kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId}).then(function(resp) {
-            var recordBeforeChange = resp.record;
-            console.log("before");
-            console.log(recordBeforeChange);
-            return recordBeforeChange;
-        }).then( function(recordBeforeChange) {
-            checkMap().then( function(map) {
-                console.log(map);
-                return updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId);
-            }).then( function(message) {
-                console.log(message);
-            });
-        });
-    });
-
+    // fetches corresponding records from an app using the query
     function fetchRecords(appId, query, opt_offset, opt_limit, opt_records) {
         var offset = opt_offset || 0;
         var limit = opt_limit || 100;
@@ -83,11 +115,11 @@ jQuery.noConflict();
         });
     }
 
+    // updates all of the records that use the changed record as a source
     function updateRecords(sourceAppId, destAppIds, recordBeforeChange, recordAfterChange, recordId, appIndex) {
         var destAppId = destAppIds[appIndex];
         var lookupFieldData = map[sourceAppId][destAppId];
         var query = lookupFieldData.fieldCode + ' = ' + escapeStr(recordBeforeChange[lookupFieldData.relatedLookupField].value);
-        console.log(query);
         return fetchRecords(destAppId, query).then( function(records) {
             var recCount = records.length;
             var putCount = Math.ceil(recCount / 100);
@@ -102,7 +134,6 @@ jQuery.noConflict();
 
                 var editRecords = [];
                 // overwrite the new data to matching records
-                // TODO: abort if no change
                 for (offset; offset < putLimit; offset++) {
                     var record = $.extend(true, {}, records[offset]);
                     var recId = record['$id'].value;
@@ -131,6 +162,7 @@ jQuery.noConflict();
                         throw error;
                     });
                 });
+                // recursively call updateChildren to update the grandchildren of the record the user changed
                 for (let i = 0; i < l; i++) {
                     chain = chain.then( function() {
                         return updateChildren(destAppId, records[initialOffset + i], editRecords[i].record, editRecords[i].id);
@@ -139,5 +171,54 @@ jQuery.noConflict();
                 return chain;
             }
         });
+    }
+
+    function showSpinner() {
+        // Initialize
+        if ($('.kintone-spinner').length === 0) {
+            // Create elements for the spinner and the background of the spinner
+            var spin_div = $('<div id ="kintone-spin" class="kintone-spinner"></div>');
+            var spin_bg_div = $('<div id ="kintone-spin-bg" class="kintone-spinner"></div>');
+            // Append spinner to the body
+            $(document.body).append(spin_div, spin_bg_div);
+            // Set a style for the spinner
+            $(spin_div).css({
+                'position': 'fixed',
+                'top': '50%',
+                'left': '50%',
+                'z-index': '510',
+                'background-color': '#fff',
+                'padding': '26px',
+                '-moz-border-radius': '4px',
+                '-webkit-border-radius': '4px',
+                'border-radius': '4px'
+            });
+            $(spin_bg_div).css({
+                'position': 'absolute',
+                'top': '0px',
+                'left': '0px',
+                'z-index': '500',
+                'width': '100%',
+                'height': '200%',
+                'background-color': '#000',
+                'opacity': '0.5',
+                'filter': 'alpha(opacity=50)',
+                '-ms-filter': 'alpha(opacity=50)'
+            });
+            // Set options for the spinner
+            var opts = {
+                'color': '#000'
+            };
+            // Create the spinner
+            new Spinner(opts).spin(document.getElementById('kintone-spin'));
+        }
+        // Display the spinner
+        $('.kintone-spinner').show();
+    }
+
+    // Function to hide the spinner
+    function hideSpinner() {
+        // Hide the spinner
+        $('.kintone-spinner').hide();
     }
 })(jQuery, kintone.$PLUGIN_ID);
