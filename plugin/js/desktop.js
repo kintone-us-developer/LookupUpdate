@@ -1,7 +1,7 @@
 /* Code based on example provided at: https://kintoneapp.com/blog/lookup_improvement/ */
 "use strict";
 jQuery.noConflict();
-(function($, PLUGIN_ID) { 
+(function($, PLUGIN_ID) {
     var masterChain = Promise.resolve();
 
     /* Existing record edited and save button clicked */
@@ -175,54 +175,5 @@ jQuery.noConflict();
                 return chain;
             }
         });
-    }
-
-    /* Spinner library function that shows the spinner on screen when called. */
-    function showSpinner() {
-        /* Initialize */
-        if ($('.kintone-spinner').length === 0) {
-            /* Create elements for the spinner and the background of the spinner */
-            var spin_div = $('<div id ="kintone-spin" class="kintone-spinner"></div>');
-            var spin_bg_div = $('<div id ="kintone-spin-bg" class="kintone-spinner"></div>');
-            /* Append spinner to the body */
-            $(document.body).append(spin_div, spin_bg_div);
-            /* Set a style for the spinner */
-            $(spin_div).css({
-                'position': 'fixed',
-                'top': '50%',
-                'left': '50%',
-                'z-index': '510',
-                'background-color': '#fff',
-                'padding': '26px',
-                '-moz-border-radius': '4px',
-                '-webkit-border-radius': '4px',
-                'border-radius': '4px'
-            });
-            $(spin_bg_div).css({
-                'position': 'absolute',
-                'top': '0px',
-                'left': '0px',
-                'z-index': '500',
-                'width': '100%',
-                'height': '200%',
-                'background-color': '#000',
-                'opacity': '0.5',
-                'filter': 'alpha(opacity=50)',
-                '-ms-filter': 'alpha(opacity=50)'
-            });
-            /* Set options for the spinner */
-            var opts = {
-                'color': '#000'
-            };
-            /* Create the spinner */
-            new Spinner(opts).spin(document.getElementById('kintone-spin'));
-        }
-        /* Display the spinner */
-        $('.kintone-spinner').show();
-    }
-
-    /* Spinner library function that hides the spinner when called. */
-    function hideSpinner() {
-        $('.kintone-spinner').hide();
     }
 })(jQuery, kintone.$PLUGIN_ID);

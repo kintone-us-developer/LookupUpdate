@@ -16,6 +16,7 @@
             "https://js.kintone.com/jquery/3.3.1/jquery.min.js",
             "https://js.kintone.com/spinjs/2.3.2/spin.min.js",
             "js/createMap.js",
+            "js/spinHelper.js",
             "js/desktop.js"
         ]
     }
