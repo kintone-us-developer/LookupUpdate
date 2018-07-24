@@ -41,27 +41,37 @@ jQuery.noConflict();
     });
 
     function recordsEqual(recordBeforeChange, recordAfterChange) {
-        // only need to compare record values for equality
-        delete recordBeforeChange["$revision"];
-        delete recordBeforeChange["Updated_datetime"];
-        delete recordAfterChange["$revision"];
-        delete recordAfterChange["Updated_datetime"];
         // console.log("before");
         // console.log(recordBeforeChange);
         // console.log("after");
         // console.log(recordAfterChange);
+
+        // only need to compare record values for equality
+        delete recordBeforeChange['$id'];
+        delete recordBeforeChange['$revision'];
+        delete recordBeforeChange['Record_number'];
+        delete recordBeforeChange['Created_datetime'];
+        delete recordBeforeChange['Created_by'];
+        delete recordBeforeChange['Updated_datetime'];
+        delete recordBeforeChange['Updated_by'];
         var orderedBefore = {};
         Object.keys(recordBeforeChange).sort().forEach(function(key) {
             orderedBefore[key] = recordBeforeChange[key];
         });
+
+        delete recordAfterChange['$id'];
+        delete recordAfterChange['$revision'];
+        delete recordAfterChange['Record_number'];
+        delete recordAfterChange['Created_datetime'];
+        delete recordAfterChange['Created_by'];
+        delete recordAfterChange['Updated_datetime'];
+        delete recordAfterChange['Updated_by'];
         var orderedAfter = {};
         Object.keys(recordAfterChange).sort().forEach(function(key) {
             orderedAfter[key] = recordAfterChange[key];
         });
-        if (JSON.stringify(orderedBefore) === JSON.stringify(orderedAfter)) {
-            return true;
-        }
-        return false;
+
+        return JSON.stringify(orderedBefore) === JSON.stringify(orderedAfter);
     }
 
     // handles " (double quote) in query string
@@ -144,7 +154,6 @@ jQuery.noConflict();
                     delete record['Created_by'];
                     delete record['Updated_datetime'];
                     delete record['Updated_by'];
-                    "sdfsd''//v fsdf"
                     record[lookupFieldData.fieldCode] = recordAfterChange[lookupFieldData.relatedLookupField];
                     lookupFieldData.fieldMappings.forEach( function(mapping) {
                         record[mapping.field] = recordAfterChange[mapping.relatedField];
