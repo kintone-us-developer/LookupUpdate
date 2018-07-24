@@ -1,52 +1,45 @@
-/*
-* Code based on example provided at: https://kintoneapp.com/blog/lookup_improvement/
-*/
+/* Code based on example provided at: https://kintoneapp.com/blog/lookup_improvement/ */
+"use strict";
 jQuery.noConflict();
 (function($, PLUGIN_ID) {
-    "use strict";
+    var masterChain = Promise.resolve();
 
-    //On Submit
+    /* Existing record edited and save button clicked */
     kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
         showSpinner();
         var sourceAppId = kintone.app.getId();
         var recordId = event.recordId;
-        chain = chain.then(function() {
+        /* Building first half of the master chain:
+        get the record data before the change */
+        masterChain = masterChain.then(function() {
             return kintone.api('/k/v1/record', 'GET', {app: sourceAppId, id: recordId});
         }).then(function(resp) {
-            var recordBeforeChange = resp.record;
-            // console.log("before");
-            // console.log(recordBeforeChange);
-            return recordBeforeChange;
+            return resp.record;
         });
         hideSpinner();
     });
 
-    //On Success
-    var chain = Promise.resolve();
+    /* Existing record edited and successfully saved */
     kintone.events.on(['app.record.edit.submit.success', 'app.record.index.edit.submit.success'], function(event) {
         showSpinner();
         var sourceAppId = kintone.app.getId();
         var recordId = event.recordId;
         var recordAfterChange = event.record;
-        chain = chain.then( function(recordBeforeChange) {
+        /* Building second half of the master chain:
+        update using map with record data after the change */
+        masterChain = masterChain.then( function(recordBeforeChange) {
             checkMap().then( function(map) {
-                // console.log(map);
                 return updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId);
             }).then( function(message) {
                 console.log(message);
                 hideSpinner();
             });
         });
-        return chain;
+        return masterChain; /* execute the chain */
     });
 
     function recordsEqual(recordBeforeChange, recordAfterChange) {
-        // console.log("before");
-        // console.log(recordBeforeChange);
-        // console.log("after");
-        // console.log(recordAfterChange);
-
-        // only need to compare record values for equality
+        /* only need to compare record values for equality */
         delete recordBeforeChange['$id'];
         delete recordBeforeChange['$revision'];
         delete recordBeforeChange['Record_number'];
@@ -54,6 +47,7 @@ jQuery.noConflict();
         delete recordBeforeChange['Created_by'];
         delete recordBeforeChange['Updated_datetime'];
         delete recordBeforeChange['Updated_by'];
+        /* need to sort by keys so that JSON stringify is equivalent  */
         var orderedBefore = {};
         Object.keys(recordBeforeChange).sort().forEach(function(key) {
             orderedBefore[key] = recordBeforeChange[key];
@@ -74,13 +68,13 @@ jQuery.noConflict();
         return JSON.stringify(orderedBefore) === JSON.stringify(orderedAfter);
     }
 
-    // handles " (double quote) in query string
+    /* Escapes " (double quote) in query string. */
     function escapeStr(str) {
         var escaped = str.replace(/\x22/g, '\\\x22');
         return '"' + escaped + '"';
     }
 
-    // checks if map is defined in current window. Is a promise.
+    /* Checks if map is defined in current window. */
     function checkMap() {
         return new Promise( function(resolve, reject) {
             if (Object.keys(map).length === 0) {
@@ -91,7 +85,7 @@ jQuery.noConflict();
         });
     }
 
-    // updates all apps with lookups that use the app with sourceAppId as a source
+    /* Updates all apps with lookups that use the app with sourceAppId as a source */
     function updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId) {
         if (!map[sourceAppId]) {
             return sourceAppId + " no children, end of chain";
@@ -110,7 +104,7 @@ jQuery.noConflict();
         }
     }
 
-    // fetches corresponding records from an app using the query
+    /* Fetches corresponding records from an app using the query */
     function fetchRecords(appId, query, opt_offset, opt_limit, opt_records) {
         var offset = opt_offset || 0;
         var limit = opt_limit || 100;
@@ -125,7 +119,7 @@ jQuery.noConflict();
         });
     }
 
-    // updates all of the records that use the changed record as a source
+    /* Updates all of the records in destination apps that use the changed record as a source. */
     function updateRecords(sourceAppId, destAppIds, recordBeforeChange, recordAfterChange, recordId, appIndex) {
         var destAppId = destAppIds[appIndex];
         var lookupFieldData = map[sourceAppId][destAppId];
@@ -135,7 +129,7 @@ jQuery.noConflict();
             var putCount = Math.ceil(recCount / 100);
             for (var i = 0; i < putCount; i++) {
                 var offset = i * 100;
-                var initialOffset = offset; //because offset changes in the for loop below
+                var initialOffset = offset; /* because offset changes in the for loop below */
                 var limit = 100;
                 if (offset + limit > recCount) {
                     limit = recCount - offset;
@@ -143,7 +137,7 @@ jQuery.noConflict();
                 var putLimit = limit + offset;
 
                 var editRecords = [];
-                // overwrite the new data to matching records
+                /* overwrite the new data to matching records */
                 for (offset; offset < putLimit; offset++) {
                     var record = $.extend(true, {}, records[offset]);
                     var recId = record['$id'].value;
@@ -164,6 +158,7 @@ jQuery.noConflict();
                 var l = editRecords.length;
                 var chain = Promise.resolve();
                 chain = chain.then( function() {
+                    /* API call to update the records in dest apps */
                     return kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}).then(function(resp) {
                         console.log("DestAppId is: " + destAppId);
                         return "updated records";
@@ -171,7 +166,7 @@ jQuery.noConflict();
                         throw error;
                     });
                 });
-                // recursively call updateChildren to update the grandchildren of the record the user changed
+                /* Recursively call updateChildren() to update the grandchildren of the record the user changed */
                 for (let i = 0; i < l; i++) {
                     chain = chain.then( function() {
                         return updateChildren(destAppId, records[initialOffset + i], editRecords[i].record, editRecords[i].id);
@@ -182,15 +177,16 @@ jQuery.noConflict();
         });
     }
 
+    /* Spinner library function that shows the spinner on screen when called. */
     function showSpinner() {
-        // Initialize
+        /* Initialize */
         if ($('.kintone-spinner').length === 0) {
-            // Create elements for the spinner and the background of the spinner
+            /* Create elements for the spinner and the background of the spinner */
             var spin_div = $('<div id ="kintone-spin" class="kintone-spinner"></div>');
             var spin_bg_div = $('<div id ="kintone-spin-bg" class="kintone-spinner"></div>');
-            // Append spinner to the body
+            /* Append spinner to the body */
             $(document.body).append(spin_div, spin_bg_div);
-            // Set a style for the spinner
+            /* Set a style for the spinner */
             $(spin_div).css({
                 'position': 'fixed',
                 'top': '50%',
@@ -214,20 +210,19 @@ jQuery.noConflict();
                 'filter': 'alpha(opacity=50)',
                 '-ms-filter': 'alpha(opacity=50)'
             });
-            // Set options for the spinner
+            /* Set options for the spinner */
             var opts = {
                 'color': '#000'
             };
-            // Create the spinner
+            /* Create the spinner */
             new Spinner(opts).spin(document.getElementById('kintone-spin'));
         }
-        // Display the spinner
+        /* Display the spinner */
         $('.kintone-spinner').show();
     }
 
-    // Function to hide the spinner
+    /* Spinner library function that hides the spinner when called. */
     function hideSpinner() {
-        // Hide the spinner
         $('.kintone-spinner').hide();
     }
 })(jQuery, kintone.$PLUGIN_ID);
