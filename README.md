@@ -1,6 +1,6 @@
 # Automatic Lookup Update Plugin for Kintone
 ## Download
-
+Go to [LookupUpdatePlugin.zip](LookupUpdatePlugin.zip) and click __Download__.
 ## The Problem
 Currently, Kintone’s native lookup field allows users to fill in record information with the data from a record in another app, but it does so by simply copying over the record’s data once when the initial lookup is performed.
 ![](plugin/readmeIMG/0.png "record in source app")
@@ -40,16 +40,16 @@ The user has an app called Drivers which contains a “Name” [text] and “Lic
 - Remember that if you ever change/add/delete an app’s fields, you __must delete__ Map Source’s automatically generated record. It will then be automatically regenerated when you edit and save an existing record in an app that has the plugin installed.
 
 ## Limitations
-*This plugin will not work if you have any apps that contain a lookup field with another __lookup field__ set as its __key field__.
-
-*This plugin will not work if any single app contains __multiple lookup fields__ that lookup from the __same source app__.
-
-*If a source app’s record is deleted, the change will not propagate through the child apps. The child apps will not change at all, exactly as it would behave in Kintone without the plugin installed.
+- This plugin will not work if you have any apps that contain a lookup field with another __lookup field__ set as its __key field__.
+- This plugin will not work if any single app contains __multiple lookup fields__ that lookup from the __same source app__.
+- If a source app’s record is deleted, the change will not propagate through the child apps. The child apps will not change at all, exactly as it would behave in Kintone without the plugin installed.
 
 ## Troubleshooting
-*Generally, if something that used to work doesn’t work anymore, try deleting the record in your Map Source app.
+- Generally, if something that used to work doesn’t work anymore, try deleting the record in your Map Source app.
+- If the updates aren’t happening, you may have forgotten to install the plugin in an app. See __Installation__ above to make sure you have correctly installed it. If you have an especially complex set of apps, you might find it helpful to draw out a map of lookups. See below for an example we drew.
 
-*If the updates aren’t happening, you may have forgotten to install the plugin in an app. See __Installation__ above to make sure you have correctly installed it. If you have an especially complex set of apps, you might find it helpful to draw out a map of lookups. See below for an example we drew.
+![](plugin/readmeIMG/6.png "Example")
+The arrows represent lookups and point from the lookup to the field they are using as their keys, and the colors show which mapped fields are filled in by each lookup.
 
 ## Further Help
 We do not work for Kintone and we developed this software to be freely available for all. We’re also college students so please donate if you can! If you need help, contact Kintone support. If you have any suggestions or feedback, feel free to email us at
