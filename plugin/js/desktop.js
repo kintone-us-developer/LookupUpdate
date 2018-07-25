@@ -2,13 +2,16 @@
 "use strict";
 jQuery.noConflict();
 (function($, PLUGIN_ID) {
+    var sourceAppId;
+    var recordId;
     var masterChain = Promise.resolve();
 
     /* Existing record edited and save button clicked */
+    /* showSpinner() and hideSpinner() are defined in spinHelper.js */
     kintone.events.on(['app.record.edit.submit', 'app.record.index.edit.submit'], function(event) {
         showSpinner();
-        var sourceAppId = kintone.app.getId();
-        var recordId = event.recordId;
+        sourceAppId = kintone.app.getId();
+        recordId = event.recordId;
         /* Building first half of the master chain:
         get the record data before the change */
         masterChain = masterChain.then(function() {
@@ -20,61 +23,24 @@ jQuery.noConflict();
     });
 
     /* Existing record edited and successfully saved */
+    /* showSpinner() and hideSpinner() are defined in spinHelper.js */
     kintone.events.on(['app.record.edit.submit.success', 'app.record.index.edit.submit.success'], function(event) {
         showSpinner();
-        var sourceAppId = kintone.app.getId();
-        var recordId = event.recordId;
         var recordAfterChange = event.record;
         /* Building second half of the master chain:
         update using map with record data after the change */
         masterChain = masterChain.then( function(recordBeforeChange) {
             checkMap().then( function(map) {
                 return updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId);
-            }).then( function(message) {
-                console.log(message);
+            }).then( function() {
                 hideSpinner();
             });
         });
         return masterChain; /* execute the chain */
     });
 
-    function recordsEqual(recordBeforeChange, recordAfterChange) {
-        /* only need to compare record values for equality */
-        delete recordBeforeChange['$id'];
-        delete recordBeforeChange['$revision'];
-        delete recordBeforeChange['Record_number'];
-        delete recordBeforeChange['Created_datetime'];
-        delete recordBeforeChange['Created_by'];
-        delete recordBeforeChange['Updated_datetime'];
-        delete recordBeforeChange['Updated_by'];
-        /* need to sort by keys so that JSON stringify is equivalent  */
-        var orderedBefore = {};
-        Object.keys(recordBeforeChange).sort().forEach(function(key) {
-            orderedBefore[key] = recordBeforeChange[key];
-        });
-
-        delete recordAfterChange['$id'];
-        delete recordAfterChange['$revision'];
-        delete recordAfterChange['Record_number'];
-        delete recordAfterChange['Created_datetime'];
-        delete recordAfterChange['Created_by'];
-        delete recordAfterChange['Updated_datetime'];
-        delete recordAfterChange['Updated_by'];
-        var orderedAfter = {};
-        Object.keys(recordAfterChange).sort().forEach(function(key) {
-            orderedAfter[key] = recordAfterChange[key];
-        });
-
-        return JSON.stringify(orderedBefore) === JSON.stringify(orderedAfter);
-    }
-
-    /* Escapes " (double quote) in query string. */
-    function escapeStr(str) {
-        var escaped = str.replace(/\x22/g, '\\\x22');
-        return '"' + escaped + '"';
-    }
-
-    /* Checks if map is defined in current window. */
+    /* Checks if map is defined in current session.
+    If not, it calls findMap(), defined in createMap.js*/
     function checkMap() {
         return new Promise( function(resolve, reject) {
             if (Object.keys(map).length === 0) {
@@ -85,12 +51,34 @@ jQuery.noConflict();
         });
     }
 
+    function recordsEqual(recordBeforeChange, recordAfterChange) {
+        return comparableStr(recordBeforeChange) === comparableStr(recordAfterChange);
+    }
+
+    function comparableStr(record) {
+        delete record['$id'];
+        delete record['$revision'];
+        delete record['Record_number'];
+        delete record['Created_datetime'];
+        delete record['Created_by'];
+        delete record['Updated_datetime'];
+        delete record['Updated_by'];
+        /* need to sort by keys so that JSON stringify is equivalent  */
+        var ordered = {};
+        Object.keys(record).sort().forEach(function(key) {
+            ordered[key] = record[key];
+        });
+        return JSON.stringify(ordered);
+    }
+
     /* Updates all apps with lookups that use the app with sourceAppId as a source */
     function updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId) {
         if (!map[sourceAppId]) {
-            return sourceAppId + " no children, end of chain";
+            // console.log(sourceAppId + " has no children, end of chain.");
+            return;
         } else if (recordsEqual(recordBeforeChange, recordAfterChange)) {
-            return "no change made to record";
+            // console.log("No change made to record.");
+            return;
         } else {
             var destAppIds = Object.keys(map[sourceAppId]);
             var l = destAppIds.length;
@@ -102,6 +90,12 @@ jQuery.noConflict();
             }
             return chain;
         }
+    }
+
+    /* Escapes " (double quote) in query string. */
+    function escapeStr(str) {
+        var escaped = str.replace(/\x22/g, '\\\x22');
+        return '"' + escaped + '"';
     }
 
     /* Fetches corresponding records from an app using the query */
@@ -160,8 +154,7 @@ jQuery.noConflict();
                 chain = chain.then( function() {
                     /* API call to update the records in dest apps */
                     return kintone.api('/k/v1/records', 'PUT', {app: destAppId, 'records': editRecords}).then(function(resp) {
-                        console.log("DestAppId is: " + destAppId);
-                        return "updated records";
+                        // console.log("DestAppId is: " + destAppId);
                     }, function(error) {
                         throw error;
                     });

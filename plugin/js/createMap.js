@@ -65,8 +65,8 @@ function generateMap() {
     });
 }
 
-/* Determines if the map has already been created.
-If not, it calls generateMap to create it. */
+/* Tries to find the map from the Map Source.
+If it cannot find one, it calls generateMap to create it. */
 function findMap() {
     return kintone.api('/k/v1/apps', 'GET', {name: "Map Source"}).then(function(resp) {
         return resp.apps[0].appId;
