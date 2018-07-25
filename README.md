@@ -2,7 +2,22 @@
 ## Download
 
 ## The Problem
-Currently, Kintone’s native lookup field allows users to fill in record information with the data from a record in another app, but it does so by simply copying over the record’s data once when the initial lookup is performed. As such, if users later change the data of the lookup source, they must manually relookup the record in order to copy over the new data. Furthermore, if users change the value being used as the key value of the lookup, the lookup will no longer be able to find the corresponding record.
+Currently, Kintone’s native lookup field allows users to fill in record information with the data from a record in another app, but it does so by simply copying over the record’s data once when the initial lookup is performed. 
+![](plugin/readmeIMG/0.png "record in source app")
+
+![](plugin/readmeIMG/1.png "using an ID to lookup a record and get the corresponding name")
+
+As such, if users later change the data of the lookup source, they must manually relookup the record in order to copy over the new data.
+
+![](plugin/readmeIMG/4.png "If I change the name here...")
+
+![](plugin/readmeIMG/2.png "...it doesn't change here unless I manually edit this record.")
+
+Furthermore, if users change the value being used as the key value of the lookup, the lookup will no longer be able to find the corresponding record.
+
+![](plugin/readmeIMG/5.png "If I change the ID...")
+
+![](plugin/readmeIMG/3.png "...the lookup can't find the record anymore.")
 
 ## Our Solution
 Our plugin automates lookup updates. In essence, we are changing Kintone from a non-relational database into a relational database. It even works in complex cases, such as a chain of lookups, where one lookup gets data from another lookup’s mapped field.
