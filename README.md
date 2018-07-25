@@ -31,7 +31,7 @@ The user has an app called Drivers which contains a “Name” [text] and “Lic
 ### Installation
 1. Download the LookupUpdatePlugin.zip file and upload it to your Kintone subdomain.
 2. Next, install the plugin in every app that is being __looked up from__. For instance, if app B has a lookup field with source app A, install the plugin in app A. And if app C has a lookup field with source B, install the plugin in app B as well.
-3. Create an app from scratch named “Map Source” (must be an exact match) and add a Text Area field with field code  “mapAsJSON”. Publish the app.
+3. Create an app from scratch named __Map Source__ (must be an exact match) and add a __Text Area__ field with field code  __mapAsJSON__. Publish the app.
 4. Test the plugin by first editing and saving any existing record in any app that has the plugin installed. Wait for the spinning icon to disappear. Then, refresh the page in Map Source. A new nonempty record should have been created.
 5. The installation is finished!
 
@@ -47,10 +47,10 @@ The user has an app called Drivers which contains a “Name” [text] and “Lic
 *If a source app’s record is deleted, the change will not propagate through the child apps. The child apps will not change at all, exactly as it would behave in Kintone without the plugin installed.
 
 ## Troubleshooting
-*Generally, if something that used to work doesn’t work anymore, you should try deleting the record in your Map Source app, and testing it again.
+*Generally, if something that used to work doesn’t work anymore, try deleting the record in your Map Source app.
 
-*If the updates aren’t happening, you may have forgotten to install the plugin in an app. See Installation above to make sure you have it installed correctly. If you have an especially complex set of apps, you might find it helpful to draw out a map of lookups. See below for examples we drew.
+*If the updates aren’t happening, you may have forgotten to install the plugin in an app. See __Installation__ above to make sure you have correctly installed it. If you have an especially complex set of apps, you might find it helpful to draw out a map of lookups. See below for an example we drew.
 
 ## Further Help
-We do not work for Kintone and we developed this software to be freely available for all. We’re also college students so please donate if you can! If you need help, contact Kintone support. If you have any suggestions or feedback, email us at
+We do not work for Kintone and we developed this software to be freely available for all. We’re also college students so please donate if you can! If you need help, contact Kintone support. If you have any suggestions or feedback, feel free to email us at
 __kintonedevs [at] gmail [dot] com__
