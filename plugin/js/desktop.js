@@ -1,4 +1,7 @@
-/* Code based on example provided at: https://kintoneapp.com/blog/lookup_improvement/ */
+/*
+Code based on example provided at: https://kintoneapp.com/blog/lookup_improvement/
+Updates all descendants of changed record in depth-first order.
+*/
 "use strict";
 jQuery.noConflict();
 (function($, PLUGIN_ID) {
@@ -30,25 +33,26 @@ jQuery.noConflict();
         /* Building second half of the master chain:
         update using map with record data after the change */
         masterChain = masterChain.then( function(recordBeforeChange) {
-            checkMap().then( function(map) {
+            checkMap().then( function() {
                 return updateChildren(sourceAppId, recordBeforeChange, recordAfterChange, recordId);
             }).then( function() {
                 hideSpinner();
             });
         });
-        return masterChain; /* execute the chain */
     });
 
-    /* Checks if map is defined in current session.
-    If not, it calls findMap(), defined in createMap.js*/
+    /* If global var map is not defined in the
+    current session, it adds a findMap() call to
+    the promise chain. map and findMap() are defined
+    in createMap.js */
     function checkMap() {
-        return new Promise( function(resolve, reject) {
-            if (Object.keys(map).length === 0) {
-                resolve(findMap());
-            } else {
-                resolve(map);
-            }
-        });
+        var chain = Promise.resolve();
+        if (Object.keys(map).length === 0) {
+            chain = chain.then( function() {
+                return findMap();
+            });
+        }
+        return chain;
     }
 
     function recordsEqual(recordBeforeChange, recordAfterChange) {
@@ -56,6 +60,7 @@ jQuery.noConflict();
     }
 
     function comparableStr(record) {
+        /* Only need to compare field values. */
         delete record['$id'];
         delete record['$revision'];
         delete record['Record_number'];
@@ -88,7 +93,6 @@ jQuery.noConflict();
                     return updateRecords(sourceAppId, destAppIds, recordBeforeChange, recordAfterChange, recordId, i);
                 });
             }
-            return chain;
         }
     }
 
@@ -135,6 +139,7 @@ jQuery.noConflict();
                 for (offset; offset < putLimit; offset++) {
                     var record = $.extend(true, {}, records[offset]);
                     var recId = record['$id'].value;
+                    /* delete record values that shouldn't be overwritten */
                     delete record['$id'];
                     delete record['$revision'];
                     delete record['Record_number'];
@@ -165,7 +170,6 @@ jQuery.noConflict();
                         return updateChildren(destAppId, records[initialOffset + i], editRecords[i].record, editRecords[i].id);
                     });
                 }
-                return chain;
             }
         });
     }

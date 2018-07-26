@@ -60,12 +60,11 @@ function generateMap() {
     }).then( function(allApps) {
         return fetchLookups(allApps, 0);
     }).then( function(entireMap) {
-        map = entireMap;
         return entireMap;
     });
 }
 
-/* Tries to find the map from the Map Source.
+/* Tries to find the map from the "Map Source" app.
 If it cannot find one, it calls generateMap to create it. */
 function findMap() {
     return kintone.api('/k/v1/apps', 'GET', {name: "Map Source"}).then(function(resp) {
@@ -81,7 +80,6 @@ function findMap() {
                 map = JSON.parse(resp.records[0][fieldCode].value);
                 // console.log(map);
                 // console.log("found");
-                return map;
             } else { /* map record doesn't exist yet */
                 return generateMap().then( function(entireMap) {
                     var body = {
@@ -92,15 +90,13 @@ function findMap() {
                     body.record[fieldCode].value = JSON.stringify(entireMap);
                     return kintone.api('/k/v1/record', 'POST', body).then( function(resp) {
                         /* success: new map record added to Map Source app */
-                        return map;
+                        map = entireMap;
                     }, function(error) {
                         /* error: map record creation failed, no record added. */
-                        throw Error("failed to create new record.");
+                        throw Error("failed to create new map record.");
                     });
                 });
             }
         });
-    }).then(function(map) {
-        return map;
     });
 }
